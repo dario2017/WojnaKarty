@@ -10,7 +10,9 @@ public class CardWar {
     boolean isGameActive = true;
     int roundsCounter = 1;
     int warInRowFactor = 0;
-    int subtractCards = 0; 
+    int betCards = 3; 
+    int doubleTie = 0;
+    
     public CardWar() {
         startGame();       
     }
@@ -60,11 +62,11 @@ public class CardWar {
     }
  
     public void showPlayersCards() {
-        System.out.println(player1Cards.length + " cards  ////   " + player2Cards.length + " cards");
-        System.out.println("\n Player 1    vs     Player 2\n" + "   " + player1Cards[0].getCardName() + "    vs    " + player2Cards[0].getCardName());
+//        System.out.println(player1Cards.length + " cards  ////   " + player2Cards.length + " cards");
+        System.out.println("Player 1  vs   Player 2\n" + "   " + player1Cards[0].getCardName() + "  vs    " + player2Cards[0].getCardName());
         changePlayersDeck(deck.strongerCard(player1Cards[0], player2Cards[0]));
-        System.out.println("Player 1 dlugosc: " + player1Cards.length);
-        System.out.println("Player 2 dlugosc: " + player2Cards.length);
+        System.out.println("Player 1 has: " + player1Cards.length + " cards");
+        System.out.println("Player 2 has: " + player2Cards.length + " cards");
         printPlayerCards(player1Cards);
         printPlayerCards(player2Cards);
 //      isGameActive = false;
@@ -72,7 +74,7 @@ public class CardWar {
    
     public void changePlayersDeck(Card win) {
         if (win == null) {
-            if (checkPlayersStatus(3)) {
+            if (checkPlayersStatus(betCards)) {
             	return;
             } else {
             	makeWar();
@@ -80,12 +82,10 @@ public class CardWar {
         } else if (win.equals(player1Cards[0])) {
             player1Cards = addCards(player1Cards, player2Cards[0]);
             player2Cards = subtractCards(player2Cards);
-            System.out.println("");
             System.out.println();
         } else if (win.equals(player2Cards[0])) {
             player2Cards = addCards(player2Cards, player1Cards[0]);
             player1Cards = subtractCards(player1Cards);
-            System.out.println();
             System.out.println();
         }
     }
@@ -107,23 +107,23 @@ public class CardWar {
     }
  
 // adds cards for the winner player in a war (adds his 3 cards to the end of his deck and 3 cards taken from the loser)
-    public Card[] addCards(Card[] winner, Card cardWon1, Card cardWon2, Card cardWon3) {
+    public Card[] addCards(Card[] winner, Card[] wonCards) {
         Card[] tempArr = new Card[winner.length];
         for (int i=0; i<tempArr.length; i++) {
             tempArr[i] = winner[i];
         }
-        winner = new Card[tempArr.length + 3];
+        winner = new Card[tempArr.length + betCards];
         for (int i=0; i<tempArr.length; i++) {
-            if (i < tempArr.length - 3) {
-                winner[i] = tempArr[i+3];
+            if (i < tempArr.length - betCards) {
+                winner[i] = tempArr[i+betCards];
             }
         }
-        winner[winner.length-6] = tempArr[0];
-        winner[winner.length-5] = tempArr[1];
-        winner[winner.length-4] = tempArr[2];
-        winner[winner.length-3] = cardWon1;
-        winner[winner.length-2] = cardWon2;
-        winner[winner.length-1] = cardWon3;
+        for (int i=0; i<betCards; i++) {
+            winner[winner.length - betCards - betCards + i] = tempArr[i];
+        }
+        for (int i=0; i<wonCards.length; i++) {
+        	winner[winner.length - betCards + i] = wonCards[i];
+        }
         return winner;
     }
    
@@ -159,36 +159,56 @@ public class CardWar {
     }
    
     public void makeWar() {
+    	if (checkPlayersStatus(betCards)) {
+    		isGameActive = false;
+    		return;
+    	}
         warInRowFactor += 2;
-        subtractCards = warInRowFactor + 1;
         System.out.println("Player puts another two cards on the table");
         System.out.println(player1Cards[warInRowFactor].getCardName() + "   vs   " + player2Cards[warInRowFactor].getCardName());
         if (player1Cards[warInRowFactor].getCardValue() == player2Cards[warInRowFactor].getCardValue()) {
             System.out.println("We have another tie, Time for next war!");
-            subtractCards++;
+            betCards += 3;
+            doubleTie++;
             makeWar();
         } else if (player1Cards[warInRowFactor].getCardValue() > player2Cards[warInRowFactor].getCardValue()) {
             System.out.println("Player 1 is stronger");
-            player1Cards = addCards(player1Cards, player2Cards[0], player2Cards[1], player2Cards[2]);
-            player2Cards = subtractCards(player2Cards, subtractCards);
+            Card[] warCards = createWarCards(player2Cards);                    
+            player1Cards = addCards(player1Cards, warCards);
+            player2Cards = subtractCards(player2Cards, betCards);
             warInRowFactor = 0;
+            betCards = 3;
         } else if (player1Cards[warInRowFactor].getCardValue() < player2Cards[warInRowFactor].getCardValue()) {
             System.out.println("Player 2 is stronger");
-            player2Cards = addCards(player2Cards, player1Cards[0], player1Cards[1], player1Cards[2]);
-            player1Cards = subtractCards(player1Cards, subtractCards);
+            Card[] warCards = createWarCards(player1Cards);
+            player2Cards = addCards(player2Cards, warCards);
+            player1Cards = subtractCards(player1Cards, betCards);
             warInRowFactor = 0;
+            betCards = 3;
         }
+    }
+    
+//    creates array of lost in war cards
+    public Card[] createWarCards(Card[] loserPlayer) {
+    	Card[] warCards = new Card[betCards];
+    	for (int i=0; i<warCards.length; i++) {
+        	warCards[i] = loserPlayer[i];
+        }
+    	return warCards;
     }
    
     public boolean checkPlayersStatus(int amountOfCards) {
         if (amountOfCards > player1Cards.length) {
             System.out.println("Player 1 has not enough card to play game");
             System.out.println("PLAYER 2 IS WINNER!!!!");
+            System.out.println("Podwojnych remisow: " + doubleTie);
+            System.out.println();
             isGameActive = false;
             return true;
         } else if (amountOfCards > player2Cards.length) {
             System.out.println("Player 2 has not enough card to play game");
             System.out.println("PLAYER 1 IS WINNER!!!!");
+            System.out.println("Podwojnych remisow: " + doubleTie);
             isGameActive = false;
             return true;
         }
